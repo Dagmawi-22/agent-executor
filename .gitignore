@@ -4,3 +4,9 @@ agent/node_modules/
 # Database files
 control-server/data/
 agent/data/
+
+control-server/package-lock.json
+control-server/.env
+control-server/yarn.lock
+agent/yarn.lock
+agent/package-lock.json
