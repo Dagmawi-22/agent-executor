@@ -1,0 +1,32 @@
+{
+  "name": "control-server",
+  "version": "1.0.0",
+  "description": "Control server for fault-tolerant single-agent command execution system",
+  "main": "index.js",
+  "author": {
+    "name": "Dagmawi Teka",
+    "email": "dagmawi.teka1@gmail.com",
+    "website": "https://dteka.vercel.app"
+  },
+  "scripts": {
+    "dev": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/server.ts",
+    "start": "ts-node src/server.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "license": "ISC",
+  "dependencies": {
+    "@fastify/cors": "^11.2.0",
+    "@fastify/sensible": "^6.0.4",
+    "better-sqlite3": "^12.6.0",
+    "fastify": "^5.6.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^25.0.7",
+    "@types/sqlite3": "^3.1.11",
+    "nodemon": "^3.1.11",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
