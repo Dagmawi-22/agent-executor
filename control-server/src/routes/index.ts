@@ -4,6 +4,8 @@ import type {
   CreateCommandRequest,
   CreateCommandResponse,
   GetCommandResponse,
+  Command,
+  UpdateCommandResultRequest,
 } from "../types";
 
 export async function routes(fastify: FastifyInstance) {
@@ -59,4 +61,54 @@ export async function routes(fastify: FastifyInstance) {
       return response;
     }
   );
+
+  fastify.get<{ Querystring: { agentId: string } }>(
+    "/commands/next",
+    async (request, reply) => {
+      const { agentId } = request.query;
+
+      if (!agentId) {
+        return reply.badRequest("Missing agentId query parameter");
+      }
+
+      const command = commandsService.getNextPendingCommand(agentId);
+
+      if (!command) {
+        return reply.code(204).send();
+      }
+
+      const response: Command = command;
+      return response;
+    }
+  );
+
+  fastify.put<{
+    Params: { id: string };
+    Body: UpdateCommandResultRequest;
+  }>("/commands/:id/result", async (request, reply) => {
+    const { id } = request.params;
+    const { result, agentId } = request.body;
+
+    if (!result || !agentId) {
+      return reply.badRequest("Missing result or agentId");
+    }
+
+    const command = commandsService.getCommandById(id);
+
+    if (!command) {
+      return reply.notFound("Command not found");
+    }
+
+    if (command.status !== "RUNNING") {
+      return reply.badRequest("Command is not in RUNNING state");
+    }
+
+    if (command.agentId !== agentId) {
+      return reply.badRequest("Command is not assigned to this agent");
+    }
+
+    commandsService.updateCommandResult(id, result);
+
+    return reply.code(200).send({ success: true });
+  });
 }
