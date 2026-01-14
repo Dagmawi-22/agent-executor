@@ -78,7 +78,7 @@ export class CommandsService {
     const transaction = db.transaction(() => {
       const stmt = db.prepare(`
         SELECT * FROM commands
-        WHERE status = 'PENDING'
+        WHERE status IN ('PENDING', 'FAILED')
         ORDER BY createdAt ASC
         LIMIT 1
       `);
@@ -132,7 +132,7 @@ export class CommandsService {
     const now = Date.now();
     const stmt = db.prepare(`
       UPDATE commands
-      SET status = 'FAILED', updatedAt = ?
+      SET status = 'FAILED', updatedAt = ?, agentId = NULL, assignedAt = NULL
       WHERE status = 'RUNNING'
     `);
 

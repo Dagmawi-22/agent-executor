@@ -24,7 +24,7 @@ export function initializeDatabase(): void {
 export function runRecovery(recoverFn: () => number): void {
   const recoveredCount = recoverFn();
   if (recoveredCount > 0) {
-    console.log(`Recovery: marked ${recoveredCount} RUNNING command(s) as FAILED`);
+    console.log(`Recovery: marked ${recoveredCount} RUNNING command(s) as FAILED (will be retried automatically)`);
   }
 }
 

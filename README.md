@@ -101,12 +101,13 @@ CREATE TABLE executed_commands (
 runRecovery(() => commandsService.recoverRunningCommands());
 ```
 
-**Strategy**: Mark all RUNNING commands as FAILED
+**Strategy**: Mark all RUNNING commands as FAILED, but agent automatically retries them
 
 **Rationale**:
-- We cannot know if the agent completed the command
-- Safer to fail and retry than risk duplicate execution
+- FAILED status provides visibility that server crashed during execution
+- Agent polling includes both PENDING and FAILED commands for automatic retry
 - Agent idempotency prevents actual re-execution if already completed
+- Best of both worlds: clear failure tracking + automatic recovery
 
 ### Agent Crash Recovery
 
@@ -122,21 +123,22 @@ runRecovery(() => commandsService.recoverRunningCommands());
    - Prevents re-execution even if server state is inconsistent
 
 **Edge Cases Handled**:
-- Crash mid-DELAY: Server marks FAILED, agent won't re-execute (idempotency)
-- Crash after execution, before reporting: Agent won't re-execute, server may retry with new agent
-- Server restart during agent execution: Command marked FAILED, agent completes and submits (may be rejected)
+- Crash mid-DELAY: Server marks FAILED, agent retries but won't re-execute if already started (idempotency)
+- Crash after execution, before reporting: Server marks FAILED, agent picks it up, skips execution (idempotency), reports result
+- Server restart during agent execution: Command marked FAILED on restart, agent may complete and submit successfully or retry
 
 ## Design Decisions & Trade-offs
 
-### 1. Recovery Strategy: RUNNING → FAILED
+### 1. Recovery Strategy: RUNNING → FAILED + Auto-Retry
 
-**Decision**: On server restart, mark all RUNNING commands as FAILED
+**Decision**: On server restart, mark all RUNNING commands as FAILED, but agent automatically retries them by polling for both PENDING and FAILED commands
 
 **Alternatives Considered**:
-- Return to PENDING: Risks double execution if agent actually completed
+- Mark as PENDING: Loses visibility that a crash occurred
+- Mark as FAILED only: Commands stay stuck, requiring manual intervention
 - Smart detection: Too complex, not worth the risk
 
-**Trade-off**: May fail commands unnecessarily, but guarantees safety
+**Trade-off**: Provides visibility (FAILED status shows what crashed) while maintaining automatic recovery. Agent idempotency prevents double execution, making retry safe.
 
 ### 2. Transactional Command Assignment
 
@@ -402,7 +404,7 @@ curl http://localhost:3000/commands
 ## Known Limitations
 
 1. **Single agent assumption**: Designed for one agent, though server supports multiple (untested)
-2. **No retry logic**: Failed commands stay failed, no automatic retry
+2. **No exponential backoff**: Retries happen immediately on agent poll, no delay strategy
 3. **No command timeout**: Long-running commands can block agent indefinitely
 4. **No result validation**: Server accepts any result format from agent
 5. **No authentication**: Open API, no security
@@ -411,8 +413,9 @@ curl http://localhost:3000/commands
 ## Future Enhancements
 
 - [ ] Multiple agent support with load balancing
-- [ ] Command retry with exponential backoff
+- [ ] Exponential backoff for retry delays
 - [ ] Command timeout enforcement
+- [ ] Max retry count to prevent infinite retry loops
 - [ ] Result schema validation
 - [ ] Authentication & authorization
 - [ ] Metrics (Prometheus) + monitoring
