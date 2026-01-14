@@ -21,8 +21,10 @@ export async function executeCommand(
     case "HTTP_GET_JSON":
       result = await executeHttpGetJson(command);
       break;
-    default:
-      throw new Error(`Unknown command type: ${(command as any).type}`);
+    default: {
+      const exhaustiveCheck: never = command.type;
+      throw new Error(`Unknown command type: ${exhaustiveCheck}`);
+    }
   }
 
   markCommandExecuted(command.id);

@@ -12,7 +12,7 @@ function formatTimestamp(): string {
   return new Date().toISOString();
 }
 
-function writeLog(level: string, message: string, meta?: any): void {
+function writeLog(level: string, message: string, meta?: unknown): void {
   const timestamp = formatTimestamp();
   const metaStr = meta ? ` ${JSON.stringify(meta)}` : "";
   const logLine = `[${timestamp}] [${level}] ${message}${metaStr}\n`;
@@ -28,8 +28,8 @@ function writeLog(level: string, message: string, meta?: any): void {
 }
 
 export const logger = {
-  info: (message: string, meta?: any) => writeLog("INFO", message, meta),
-  error: (message: string, meta?: any) => writeLog("ERROR", message, meta),
-  warn: (message: string, meta?: any) => writeLog("WARN", message, meta),
-  debug: (message: string, meta?: any) => writeLog("DEBUG", message, meta),
+  info: (message: string, meta?: unknown) => writeLog("INFO", message, meta),
+  error: (message: string, meta?: unknown) => writeLog("ERROR", message, meta),
+  warn: (message: string, meta?: unknown) => writeLog("WARN", message, meta),
+  debug: (message: string, meta?: unknown) => writeLog("DEBUG", message, meta),
 };
