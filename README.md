@@ -625,6 +625,44 @@ sqlite3 agent/data/idempotency.db "SELECT * FROM executed_commands;"
     └── tsconfig.json
 ```
 
+## Postman Collection
+
+A complete Postman collection is available at `postman_collection.json` with all API endpoints and examples.
+
+### Import to Postman
+
+1. Open Postman
+2. Click **Import** button
+3. Select `postman_collection.json` from this repository
+4. The collection will be imported with all endpoints
+
+### Collection Variables
+
+The collection uses these variables:
+- `baseUrl`: API base URL (default: `http://localhost:3000`)
+- `commandId`: Auto-populated when you create a command
+- `agentId`: Agent identifier for agent endpoints (default: `agent-test-001`)
+
+### Usage
+
+1. **Update baseUrl** if your server is on a different port or host
+2. **Run Health Check** to verify the server is running
+3. **Create a command** using one of the POST endpoints (commandId will be auto-saved)
+4. **Get Command by ID** to check the status (uses the saved commandId)
+5. **Get All Commands** to see all commands
+
+### Included Endpoints
+
+- ✅ Health Check
+- ✅ Create DELAY Command
+- ✅ Create HTTP_GET_JSON Command (JSONPlaceholder example)
+- ✅ Create HTTP_GET_JSON Command (GitHub API example)
+- ✅ Get All Commands
+- ✅ Get Command by ID
+- ✅ Agent - Poll for Next Command
+- ✅ Agent - Submit Command Result (DELAY)
+- ✅ Agent - Submit Command Result (HTTP)
+
 ## API Examples
 
 ### Create DELAY Command

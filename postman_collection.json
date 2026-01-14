@@ -1,0 +1,246 @@
+{
+  "info": {
+    "name": "Agent Executor API",
+    "description": "Fault-tolerant command execution system API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "commandId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "agentId",
+      "value": "agent-test-001",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        },
+        "description": "Check if the control server is healthy"
+      },
+      "response": []
+    },
+    {
+      "name": "Create DELAY Command",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    const response = pm.response.json();",
+              "    pm.collectionVariables.set('commandId', response.commandId);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"DELAY\",\n  \"payload\": {\n    \"ms\": 3000\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/commands",
+          "host": ["{{baseUrl}}"],
+          "path": ["commands"]
+        },
+        "description": "Create a DELAY command that waits for the specified milliseconds"
+      },
+      "response": []
+    },
+    {
+      "name": "Create HTTP_GET_JSON Command",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    const response = pm.response.json();",
+              "    pm.collectionVariables.set('commandId', response.commandId);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"HTTP_GET_JSON\",\n  \"payload\": {\n    \"url\": \"https://jsonplaceholder.typicode.com/posts/1\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/commands",
+          "host": ["{{baseUrl}}"],
+          "path": ["commands"]
+        },
+        "description": "Create an HTTP_GET_JSON command that fetches data from a URL"
+      },
+      "response": []
+    },
+    {
+      "name": "Create HTTP_GET_JSON - GitHub API",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    const response = pm.response.json();",
+              "    pm.collectionVariables.set('commandId', response.commandId);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"HTTP_GET_JSON\",\n  \"payload\": {\n    \"url\": \"https://api.github.com/users/octocat\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/commands",
+          "host": ["{{baseUrl}}"],
+          "path": ["commands"]
+        },
+        "description": "Create an HTTP_GET_JSON command that fetches GitHub user data"
+      },
+      "response": []
+    },
+    {
+      "name": "Get All Commands",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/commands",
+          "host": ["{{baseUrl}}"],
+          "path": ["commands"]
+        },
+        "description": "List all commands with their current status"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Command by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/commands/{{commandId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["commands", "{{commandId}}"]
+        },
+        "description": "Get details of a specific command by ID. Make sure to set the commandId variable or create a command first."
+      },
+      "response": []
+    },
+    {
+      "name": "Agent - Poll for Next Command",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/commands/next?agentId={{agentId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["commands", "next"],
+          "query": [
+            {
+              "key": "agentId",
+              "value": "{{agentId}}"
+            }
+          ]
+        },
+        "description": "Agent endpoint to poll for the next pending or failed command. This is typically used by the agent service."
+      },
+      "response": []
+    },
+    {
+      "name": "Agent - Submit Command Result (Success)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"result\": {\n    \"ok\": true,\n    \"tookMs\": 3001\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/commands/{{commandId}}/result",
+          "host": ["{{baseUrl}}"],
+          "path": ["commands", "{{commandId}}", "result"]
+        },
+        "description": "Agent endpoint to submit the result of a DELAY command"
+      },
+      "response": []
+    },
+    {
+      "name": "Agent - Submit Command Result (HTTP Success)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"result\": {\n    \"status\": 200,\n    \"body\": {\n      \"userId\": 1,\n      \"id\": 1,\n      \"title\": \"Example Post\",\n      \"body\": \"Example body text\"\n    },\n    \"truncated\": false,\n    \"bytesReturned\": 292,\n    \"error\": null\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/commands/{{commandId}}/result",
+          "host": ["{{baseUrl}}"],
+          "path": ["commands", "{{commandId}}", "result"]
+        },
+        "description": "Agent endpoint to submit the result of an HTTP_GET_JSON command"
+      },
+      "response": []
+    }
+  ]
+}
