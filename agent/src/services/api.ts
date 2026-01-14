@@ -17,7 +17,7 @@ export async function pollForCommand(
       throw new Error(`Failed to poll: ${response.statusText}`);
     }
 
-    const command: Command = await response.json();
+    const command = await response.json() as Command;
     return command;
   } catch (error) {
     console.error("Error polling for command:", error);
