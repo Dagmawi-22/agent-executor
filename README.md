@@ -339,6 +339,61 @@ The workflow (`.github/workflows/ci-cd.yml`) runs on:
 
 **No manual configuration needed** - GitHub automatically provides `GITHUB_TOKEN` for pushing to the registry.
 
+### Using Pre-Built Images from GitHub Container Registry
+
+After the CI/CD pipeline pushes images to GitHub Container Registry, you can pull and run them on any server:
+
+#### Option 1: Pull and Run with docker-compose.prod.yml
+
+1. **On your server, copy the production compose file**:
+   ```bash
+   # Create a directory
+   mkdir -p ~/agent-executor
+   cd ~/agent-executor
+
+   # Copy files (or git clone the repo)
+   # You need: docker-compose.prod.yml and .env.example
+   ```
+
+2. **Create .env file with your GitHub repository**:
+   ```bash
+   cp .env.example .env
+   nano .env
+   ```
+
+   Set this variable:
+   ```bash
+   GITHUB_REPOSITORY=your-username/agent-executor
+   ```
+
+3. **Pull and start services**:
+   ```bash
+   docker-compose -f docker-compose.prod.yml pull
+   docker-compose -f docker-compose.prod.yml up -d
+   ```
+
+4. **Check it's running**:
+   ```bash
+   curl http://localhost:3000/health
+   ```
+
+#### Option 2: Pull Images Manually
+
+```bash
+# Login to GitHub Container Registry (if private repo)
+echo $GITHUB_TOKEN | docker login ghcr.io -u YOUR_USERNAME --password-stdin
+
+# Pull images
+docker pull ghcr.io/YOUR_USERNAME/agent-executor/control-server:latest
+docker pull ghcr.io/YOUR_USERNAME/agent-executor/agent:latest
+
+# Run with docker-compose.prod.yml
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+**Note**: By default, GitHub Container Registry packages are private. Make them public in:
+GitHub → Packages → Your package → Package settings → Change visibility
+
 ## Testing
 
 ### 1. Basic Flow Test
