@@ -345,6 +345,99 @@ The docker-compose configuration supports environment variables for flexible dep
 - **External Access**: Use the host port (e.g., `http://localhost:7001/health`)
 - **Internal Access**: Agent uses container port via `SERVER_URL=http://control-server:3000`
 
+### Nginx Reverse Proxy Setup
+
+To expose the control-server through nginx on a custom path:
+
+1. **Create nginx configuration** (`/etc/nginx/sites-available/agent-executor`):
+   ```nginx
+   server {
+       listen 80;
+       server_name your-domain.com;  # or use _ for IP-based access
+
+       location /agent-executor {
+           rewrite ^/agent-executor(/.*)$ $1 break;
+           rewrite ^/agent-executor$ / break;
+           proxy_pass http://127.0.0.1:7001;  # Use the host port
+           proxy_http_version 1.1;
+           proxy_set_header Upgrade $http_upgrade;
+           proxy_set_header Connection 'upgrade';
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_cache_bypass $http_upgrade;
+       }
+   }
+   ```
+
+2. **Enable and reload**:
+   ```bash
+   sudo ln -s /etc/nginx/sites-available/agent-executor /etc/nginx/sites-enabled/
+   sudo nginx -t
+   sudo systemctl reload nginx
+   ```
+
+3. **Test**:
+   ```bash
+   curl http://your-domain.com/agent-executor/health
+   ```
+
+**Important**: Make sure to use the **host port** (e.g., 7001) in the nginx `proxy_pass` directive, not the container port (3000).
+
+### Docker Deployment Troubleshooting
+
+**Problem: Container builds but server can't be accessed from host**
+
+*Symptom*: `curl: (56) Recv failure: Connection reset by peer` or nginx 502 errors
+
+*Solution*: The server must bind to `0.0.0.0` instead of `localhost` to accept connections through Docker port mapping:
+
+```typescript
+// control-server/src/server.ts
+await fastify.listen({ port: 3000, host: '0.0.0.0' });
+```
+
+Without `host: '0.0.0.0'`, the server only accepts connections from inside the container, preventing Docker port mapping from working.
+
+**Problem: Agent logs show "fetch failed" errors**
+
+*Symptom*: Agent continuously fails to connect to control-server
+
+*Solution*: Check that `SERVER_URL` uses the **internal container port** (3000), not the external host port:
+
+```bash
+# Wrong - uses host port
+SERVER_URL=http://control-server:7001
+
+# Correct - uses container port
+SERVER_URL=http://control-server:3000
+```
+
+**Problem: Docker build fails with "EBADENGINE" error**
+
+*Symptom*: `npm warn EBADENGINE Unsupported engine { package: 'better-sqlite3@12.6.0' }`
+
+*Solution*: Update Dockerfiles to use Node 20+:
+
+```dockerfile
+FROM node:20-alpine
+```
+
+**Problem: TypeScript compilation fails in Docker**
+
+*Symptom*: `tsc: The TypeScript Compiler - Version 5.9.3` (help output instead of compilation)
+
+*Solution*: Ensure `tsconfig.json` is NOT in `.dockerignore`. Remove it if present:
+
+```bash
+# .dockerignore should NOT contain:
+# tsconfig.json  <- Remove this line
+```
+
+**Problem: npm ci fails with "package-lock.json not found"**
+
+*Solution*: Ensure `package-lock.json` is committed to git and not in `.gitignore`.
+
 ## CI/CD Pipeline
 
 This project includes a GitHub Actions CI/CD pipeline that automatically builds, tests, and pushes Docker images to GitHub Container Registry.
