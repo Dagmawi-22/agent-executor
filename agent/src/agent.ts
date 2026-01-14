@@ -3,7 +3,7 @@ import { AgentConfig } from "./types";
 import { pollForCommand, submitResult } from "./services/api";
 import { executeCommand } from "./executors";
 import { initializeIdempotency } from "./services/idempotency";
-import { logger } from "./utils/logger";
+import { logger } from "./utils/logger.js";
 
 const SERVER_URL = process.env.SERVER_URL || "http://localhost:3000";
 const POLL_INTERVAL = parseInt(process.env.POLL_INTERVAL || "2000", 10);

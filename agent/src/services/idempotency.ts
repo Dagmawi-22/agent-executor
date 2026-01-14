@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import { join } from "path";
 import { mkdirSync } from "fs";
 import { dirname } from "path";
-import { logger } from "../utils/logger";
+import { logger } from "../utils/logger.js";
 
 const DB_PATH = process.env.IDEMPOTENCY_DB_PATH || join(process.cwd(), "data/idempotency.db");
 

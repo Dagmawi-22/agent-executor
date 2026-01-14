@@ -1,5 +1,5 @@
 import { Command, CommandResult } from "../types";
-import { logger } from "../utils/logger";
+import { logger } from "../utils/logger.js";
 
 export async function pollForCommand(
   serverUrl: string,
