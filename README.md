@@ -257,8 +257,11 @@ docker-compose down -v
 
 ### Testing with Docker
 
-**Submit commands** (server is on host port 3000):
+**Submit commands** (use the host port, default 3000 or your configured `CONTROL_SERVER_PORT`):
 ```bash
+# Health check
+curl http://localhost:3000/health
+
 # DELAY command
 curl -X POST http://localhost:3000/commands \
   -H "Content-Type: application/json" \
@@ -271,7 +274,12 @@ curl -X POST http://localhost:3000/commands \
 
 # Check status
 curl http://localhost:3000/commands/<commandId>
+
+# List all commands
+curl http://localhost:3000/commands
 ```
+
+**Note**: If you set `CONTROL_SERVER_PORT=7001` in your `.env`, use `http://localhost:7001` instead.
 
 **Access service logs**:
 ```bash
@@ -310,16 +318,125 @@ The docker-compose configuration supports environment variables for flexible dep
 
 2. **Edit `.env` with your values**:
    ```bash
-   CONTROL_SERVER_PORT=3000
+   # Port mapping: Host port -> Container port
+   # Control server listens on port 3000 inside the container
+   # This maps it to a different port on the host machine
+   CONTROL_SERVER_PORT=7001
+
+   # IMPORTANT: SERVER_URL must use the INTERNAL container port (3000)
+   # NOT the external host port (7001)
+   # Containers communicate directly inside the Docker network
    SERVER_URL=http://control-server:3000
+
    POLL_INTERVAL=2000
    NODE_ENV=production
+   AGENT_ID=agent-1
    ```
 
 3. **Run with custom configuration**:
    ```bash
    docker-compose up -d
    ```
+
+**Understanding Port Configuration**:
+- **Container Port**: The port the service listens on INSIDE the container (always 3000 for control-server)
+- **Host Port**: The port exposed on the HOST machine (configurable via `CONTROL_SERVER_PORT`, e.g., 7001)
+- **Docker Network**: Containers communicate using container ports, not host ports
+- **External Access**: Use the host port (e.g., `http://localhost:7001/health`)
+- **Internal Access**: Agent uses container port via `SERVER_URL=http://control-server:3000`
+
+### Nginx Reverse Proxy Setup
+
+To expose the control-server through nginx on a custom path:
+
+1. **Create nginx configuration** (`/etc/nginx/sites-available/agent-executor`):
+   ```nginx
+   server {
+       listen 80;
+       server_name your-domain.com;  # or use _ for IP-based access
+
+       location /agent-executor {
+           rewrite ^/agent-executor(/.*)$ $1 break;
+           rewrite ^/agent-executor$ / break;
+           proxy_pass http://127.0.0.1:7001;  # Use the host port
+           proxy_http_version 1.1;
+           proxy_set_header Upgrade $http_upgrade;
+           proxy_set_header Connection 'upgrade';
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_cache_bypass $http_upgrade;
+       }
+   }
+   ```
+
+2. **Enable and reload**:
+   ```bash
+   sudo ln -s /etc/nginx/sites-available/agent-executor /etc/nginx/sites-enabled/
+   sudo nginx -t
+   sudo systemctl reload nginx
+   ```
+
+3. **Test**:
+   ```bash
+   curl http://your-domain.com/agent-executor/health
+   ```
+
+**Important**: Make sure to use the **host port** (e.g., 7001) in the nginx `proxy_pass` directive, not the container port (3000).
+
+### Docker Deployment Troubleshooting
+
+**Problem: Container builds but server can't be accessed from host**
+
+*Symptom*: `curl: (56) Recv failure: Connection reset by peer` or nginx 502 errors
+
+*Solution*: The server must bind to `0.0.0.0` instead of `localhost` to accept connections through Docker port mapping:
+
+```typescript
+// control-server/src/server.ts
+await fastify.listen({ port: 3000, host: '0.0.0.0' });
+```
+
+Without `host: '0.0.0.0'`, the server only accepts connections from inside the container, preventing Docker port mapping from working.
+
+**Problem: Agent logs show "fetch failed" errors**
+
+*Symptom*: Agent continuously fails to connect to control-server
+
+*Solution*: Check that `SERVER_URL` uses the **internal container port** (3000), not the external host port:
+
+```bash
+# Wrong - uses host port
+SERVER_URL=http://control-server:7001
+
+# Correct - uses container port
+SERVER_URL=http://control-server:3000
+```
+
+**Problem: Docker build fails with "EBADENGINE" error**
+
+*Symptom*: `npm warn EBADENGINE Unsupported engine { package: 'better-sqlite3@12.6.0' }`
+
+*Solution*: Update Dockerfiles to use Node 20+:
+
+```dockerfile
+FROM node:20-alpine
+```
+
+**Problem: TypeScript compilation fails in Docker**
+
+*Symptom*: `tsc: The TypeScript Compiler - Version 5.9.3` (help output instead of compilation)
+
+*Solution*: Ensure `tsconfig.json` is NOT in `.dockerignore`. Remove it if present:
+
+```bash
+# .dockerignore should NOT contain:
+# tsconfig.json  <- Remove this line
+```
+
+**Problem: npm ci fails with "package-lock.json not found"**
+
+*Solution*: Ensure `package-lock.json` is committed to git and not in `.gitignore`.
 
 ## CI/CD Pipeline
 
@@ -507,6 +624,44 @@ sqlite3 agent/data/idempotency.db "SELECT * FROM executed_commands;"
     ├── package.json
     └── tsconfig.json
 ```
+
+## Postman Collection
+
+A complete Postman collection is available at `postman_collection.json` with all API endpoints and examples.
+
+### Import to Postman
+
+1. Open Postman
+2. Click **Import** button
+3. Select `postman_collection.json` from this repository
+4. The collection will be imported with all endpoints
+
+### Collection Variables
+
+The collection uses these variables:
+- `baseUrl`: API base URL (default: `http://localhost:3000`)
+- `commandId`: Auto-populated when you create a command
+- `agentId`: Agent identifier for agent endpoints (default: `agent-test-001`)
+
+### Usage
+
+1. **Update baseUrl** if your server is on a different port or host
+2. **Run Health Check** to verify the server is running
+3. **Create a command** using one of the POST endpoints (commandId will be auto-saved)
+4. **Get Command by ID** to check the status (uses the saved commandId)
+5. **Get All Commands** to see all commands
+
+### Included Endpoints
+
+- ✅ Health Check
+- ✅ Create DELAY Command
+- ✅ Create HTTP_GET_JSON Command (JSONPlaceholder example)
+- ✅ Create HTTP_GET_JSON Command (GitHub API example)
+- ✅ Get All Commands
+- ✅ Get Command by ID
+- ✅ Agent - Poll for Next Command
+- ✅ Agent - Submit Command Result (DELAY)
+- ✅ Agent - Submit Command Result (HTTP)
 
 ## API Examples
 
