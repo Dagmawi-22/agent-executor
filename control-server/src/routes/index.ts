@@ -30,8 +30,13 @@ export async function routes(fastify: FastifyInstance) {
         return reply.badRequest("DELAY payload must have ms as number");
       }
 
-      if (type === "HTTP_GET_JSON" && typeof (payload as any).url !== "string") {
-        return reply.badRequest("HTTP_GET_JSON payload must have url as string");
+      if (
+        type === "HTTP_GET_JSON" &&
+        typeof (payload as any).url !== "string"
+      ) {
+        return reply.badRequest(
+          "HTTP_GET_JSON payload must have url as string"
+        );
       }
 
       const commandId = commandsService.createCommand(type, payload);
@@ -40,6 +45,12 @@ export async function routes(fastify: FastifyInstance) {
       return reply.code(201).send(response);
     }
   );
+
+  fastify.get<{}>("/commands", async (request, reply) => {
+    const commands = commandsService.getAllCommands();
+
+    return commands;
+  });
 
   fastify.get<{ Params: { id: string } }>(
     "/commands/:id",

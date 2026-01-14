@@ -110,6 +110,15 @@ export class CommandsService {
     return transaction();
   }
 
+  getAllCommands(): Command[] {
+    const stmt = db.prepare(`
+      SELECT * FROM commands WHERE 1
+    `);
+
+    const rows = stmt.all() as any[];
+    return rows.map((row) => this.mapRowToCommand(row));
+  }
+
   getAllRunningCommands(): Command[] {
     const stmt = db.prepare(`
       SELECT * FROM commands WHERE status = 'RUNNING'
