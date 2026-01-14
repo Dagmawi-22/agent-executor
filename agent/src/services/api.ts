@@ -1,4 +1,5 @@
 import { Command, CommandResult } from "../types";
+import { logger } from "../utils/logger";
 
 export async function pollForCommand(
   serverUrl: string,
@@ -20,7 +21,7 @@ export async function pollForCommand(
     const command = await response.json() as Command;
     return command;
   } catch (error) {
-    console.error("Error polling for command:", error);
+    logger.error("Error polling for command", { error: error instanceof Error ? error.message : String(error) });
     throw error;
   }
 }
@@ -44,7 +45,7 @@ export async function submitResult(
       throw new Error(`Failed to submit result: ${response.statusText}`);
     }
   } catch (error) {
-    console.error("Error submitting result:", error);
+    logger.error("Error submitting result", { error: error instanceof Error ? error.message : String(error) });
     throw error;
   }
 }

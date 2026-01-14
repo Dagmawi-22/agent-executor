@@ -3,6 +3,7 @@ import { AgentConfig } from "./types";
 import { pollForCommand, submitResult } from "./services/api";
 import { executeCommand } from "./executors";
 import { initializeIdempotency } from "./services/idempotency";
+import { logger } from "./utils/logger";
 
 const SERVER_URL = process.env.SERVER_URL || "http://localhost:3000";
 const POLL_INTERVAL = parseInt(process.env.POLL_INTERVAL || "2000", 10);
@@ -39,25 +40,25 @@ async function main() {
 
   initializeIdempotency();
 
-  console.log(`Agent started: ${config.agentId}`);
-  console.log(`Server: ${config.serverUrl}`);
-  console.log(`Poll interval: ${config.pollInterval}ms`);
+  logger.info(`Agent started: ${config.agentId}`);
+  logger.info(`Server: ${config.serverUrl}`);
+  logger.info(`Poll interval: ${config.pollInterval}ms`);
   if (config.killAfter) {
-    console.log(`Will crash after: ${config.killAfter / 1000}s`);
+    logger.warn(`Will crash after: ${config.killAfter / 1000}s`);
   }
   if (config.randomFailures) {
-    console.log(`Random failures: enabled`);
+    logger.warn(`Random failures: enabled`);
   }
 
   while (true) {
     try {
       if (config.killAfter && Date.now() - startTime > config.killAfter) {
-        console.log("Simulating crash (--kill-after)");
+        logger.warn("Simulating crash (--kill-after)");
         process.exit(1);
       }
 
       if (config.randomFailures && Math.random() < 0.1) {
-        console.log("Simulating crash (--random-failures)");
+        logger.warn("Simulating crash (--random-failures)");
         process.exit(1);
       }
 
@@ -68,11 +69,11 @@ async function main() {
         continue;
       }
 
-      console.log(`Received command: ${command.id} (${command.type})`);
+      logger.info(`Received command: ${command.id} (${command.type})`);
 
       const result = await executeCommand(command);
 
-      console.log(`Completed command: ${command.id}`);
+      logger.info(`Completed command: ${command.id}`);
 
       await submitResult(
         config.serverUrl,
@@ -81,9 +82,9 @@ async function main() {
         config.agentId
       );
 
-      console.log(`Submitted result for: ${command.id}`);
+      logger.info(`Submitted result for: ${command.id}`);
     } catch (error) {
-      console.error("Error in agent loop:", error);
+      logger.error("Error in agent loop", { error: error instanceof Error ? error.message : String(error) });
       await sleep(config.pollInterval);
     }
   }
@@ -94,6 +95,6 @@ function sleep(ms: number): Promise<void> {
 }
 
 main().catch((err) => {
-  console.error("Fatal error:", err);
+  logger.error("Fatal error", { error: err instanceof Error ? err.message : String(err) });
   process.exit(1);
 });
