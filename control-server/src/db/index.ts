@@ -3,7 +3,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { mkdirSync } from "fs";
 import { dirname } from "path";
-import { logger } from "../utils/logger";
+import { logger } from "../utils/logger.js";
 
 const DB_PATH =
   process.env.DB_PATH || join(__dirname, "../../data/commands.db");
@@ -23,7 +23,9 @@ export function initializeDatabase(): void {
 export function runRecovery(recoverFn: () => number): void {
   const recoveredCount = recoverFn();
   if (recoveredCount > 0) {
-    logger.warn(`Recovery: marked ${recoveredCount} RUNNING command(s) as FAILED (will be retried automatically)`);
+    logger.warn(
+      `Recovery: marked ${recoveredCount} RUNNING command(s) as FAILED (will be retried automatically)`
+    );
   }
 }
 

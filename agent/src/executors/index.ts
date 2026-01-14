@@ -2,7 +2,7 @@ import { Command, CommandResult } from "../types";
 import { executeDelay } from "./delay";
 import { executeHttpGetJson } from "./http-get-json";
 import { isCommandExecuted, markCommandExecuted } from "../services/idempotency";
-import { logger } from "../utils/logger";
+import { logger } from "../utils/logger.js";
 
 export async function executeCommand(
   command: Command

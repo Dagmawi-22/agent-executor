@@ -4,7 +4,7 @@ import sensible from "@fastify/sensible";
 import { routes } from "./routes";
 import { initializeDatabase, runRecovery } from "./db";
 import { commandsService } from "./services/commands.service";
-import { logger } from "./utils/logger";
+import { logger } from "./utils/logger.js";
 
 const fastify = Fastify({ logger: false });
 
