@@ -257,8 +257,11 @@ docker-compose down -v
 
 ### Testing with Docker
 
-**Submit commands** (server is on host port 3000):
+**Submit commands** (use the host port, default 3000 or your configured `CONTROL_SERVER_PORT`):
 ```bash
+# Health check
+curl http://localhost:3000/health
+
 # DELAY command
 curl -X POST http://localhost:3000/commands \
   -H "Content-Type: application/json" \
@@ -271,7 +274,12 @@ curl -X POST http://localhost:3000/commands \
 
 # Check status
 curl http://localhost:3000/commands/<commandId>
+
+# List all commands
+curl http://localhost:3000/commands
 ```
+
+**Note**: If you set `CONTROL_SERVER_PORT=7001` in your `.env`, use `http://localhost:7001` instead.
 
 **Access service logs**:
 ```bash
@@ -310,16 +318,32 @@ The docker-compose configuration supports environment variables for flexible dep
 
 2. **Edit `.env` with your values**:
    ```bash
-   CONTROL_SERVER_PORT=3000
+   # Port mapping: Host port -> Container port
+   # Control server listens on port 3000 inside the container
+   # This maps it to a different port on the host machine
+   CONTROL_SERVER_PORT=7001
+
+   # IMPORTANT: SERVER_URL must use the INTERNAL container port (3000)
+   # NOT the external host port (7001)
+   # Containers communicate directly inside the Docker network
    SERVER_URL=http://control-server:3000
+
    POLL_INTERVAL=2000
    NODE_ENV=production
+   AGENT_ID=agent-1
    ```
 
 3. **Run with custom configuration**:
    ```bash
    docker-compose up -d
    ```
+
+**Understanding Port Configuration**:
+- **Container Port**: The port the service listens on INSIDE the container (always 3000 for control-server)
+- **Host Port**: The port exposed on the HOST machine (configurable via `CONTROL_SERVER_PORT`, e.g., 7001)
+- **Docker Network**: Containers communicate using container ports, not host ports
+- **External Access**: Use the host port (e.g., `http://localhost:7001/health`)
+- **Internal Access**: Agent uses container port via `SERVER_URL=http://control-server:3000`
 
 ## CI/CD Pipeline
 
