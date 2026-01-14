@@ -8,6 +8,18 @@ import type {
   CommandType,
 } from "../types";
 
+interface CommandRow {
+  id: string;
+  type: string;
+  payload: string;
+  status: string;
+  result: string | null;
+  agentId: string | null;
+  createdAt: number;
+  updatedAt: number;
+  assignedAt: number | null;
+}
+
 export class CommandsService {
   createCommand(type: CommandType, payload: CommandPayload): string {
     const id = randomUUID();
@@ -28,7 +40,7 @@ export class CommandsService {
       SELECT * FROM commands WHERE id = ?
     `);
 
-    const row = stmt.get(id) as any;
+    const row = stmt.get(id) as CommandRow | undefined;
 
     if (!row) {
       return null;
@@ -78,12 +90,12 @@ export class CommandsService {
     const transaction = db.transaction(() => {
       const stmt = db.prepare(`
         SELECT * FROM commands
-        WHERE status = 'PENDING'
+        WHERE status IN ('PENDING', 'FAILED')
         ORDER BY createdAt ASC
         LIMIT 1
       `);
 
-      const row = stmt.get() as any;
+      const row = stmt.get() as CommandRow | undefined;
 
       if (!row) {
         return null;
@@ -110,22 +122,43 @@ export class CommandsService {
     return transaction();
   }
 
+  getAllCommands(): Command[] {
+    const stmt = db.prepare(`
+      SELECT * FROM commands WHERE 1
+    `);
+
+    const rows = stmt.all() as CommandRow[];
+    return rows.map((row) => this.mapRowToCommand(row));
+  }
+
   getAllRunningCommands(): Command[] {
     const stmt = db.prepare(`
       SELECT * FROM commands WHERE status = 'RUNNING'
     `);
 
-    const rows = stmt.all() as any[];
+    const rows = stmt.all() as CommandRow[];
     return rows.map((row) => this.mapRowToCommand(row));
   }
 
-  private mapRowToCommand(row: any): Command {
+  recoverRunningCommands(): number {
+    const now = Date.now();
+    const stmt = db.prepare(`
+      UPDATE commands
+      SET status = 'FAILED', updatedAt = ?, agentId = NULL, assignedAt = NULL
+      WHERE status = 'RUNNING'
+    `);
+
+    const info = stmt.run(now);
+    return info.changes;
+  }
+
+  private mapRowToCommand(row: CommandRow): Command {
     return {
       id: row.id,
       type: row.type as CommandType,
-      payload: JSON.parse(row.payload),
+      payload: JSON.parse(row.payload) as CommandPayload,
       status: row.status as CommandStatus,
-      result: row.result ? JSON.parse(row.result) : null,
+      result: row.result ? (JSON.parse(row.result) as CommandResult) : null,
       agentId: row.agentId,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,

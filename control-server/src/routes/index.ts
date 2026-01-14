@@ -6,7 +6,27 @@ import type {
   GetCommandResponse,
   Command,
   UpdateCommandResultRequest,
+  DelayPayload,
+  HttpGetJsonPayload,
 } from "../types";
+
+function isDelayPayload(payload: unknown): payload is DelayPayload {
+  return (
+    typeof payload === "object" &&
+    payload !== null &&
+    "ms" in payload &&
+    typeof (payload as DelayPayload).ms === "number"
+  );
+}
+
+function isHttpGetJsonPayload(payload: unknown): payload is HttpGetJsonPayload {
+  return (
+    typeof payload === "object" &&
+    payload !== null &&
+    "url" in payload &&
+    typeof (payload as HttpGetJsonPayload).url === "string"
+  );
+}
 
 export async function routes(fastify: FastifyInstance) {
   fastify.get("/health", async () => {
@@ -26,12 +46,14 @@ export async function routes(fastify: FastifyInstance) {
         return reply.badRequest("Invalid command type");
       }
 
-      if (type === "DELAY" && typeof (payload as any).ms !== "number") {
+      if (type === "DELAY" && !isDelayPayload(payload)) {
         return reply.badRequest("DELAY payload must have ms as number");
       }
 
-      if (type === "HTTP_GET_JSON" && typeof (payload as any).url !== "string") {
-        return reply.badRequest("HTTP_GET_JSON payload must have url as string");
+      if (type === "HTTP_GET_JSON" && !isHttpGetJsonPayload(payload)) {
+        return reply.badRequest(
+          "HTTP_GET_JSON payload must have url as string"
+        );
       }
 
       const commandId = commandsService.createCommand(type, payload);
@@ -40,6 +62,12 @@ export async function routes(fastify: FastifyInstance) {
       return reply.code(201).send(response);
     }
   );
+
+  fastify.get<{}>("/commands", async (request, reply) => {
+    const commands = commandsService.getAllCommands();
+
+    return commands;
+  });
 
   fastify.get<{ Params: { id: string } }>(
     "/commands/:id",
