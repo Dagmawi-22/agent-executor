@@ -14,3 +14,7 @@ agent/package-lock.json
 
 # Logs
 logs/
+
+# Build output
+control-server/dist/
+agent/dist/

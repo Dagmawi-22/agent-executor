@@ -209,6 +209,96 @@ npm run dev -- --kill-after=10        # Crash after 10 seconds
 npm run dev -- --random-failures      # Random crashes (10% chance per cycle)
 ```
 
+## Running with Docker
+
+### Prerequisites
+```bash
+docker >= 20.x
+docker-compose >= 2.x
+```
+
+### Quick Start
+
+**Start both services**:
+```bash
+docker-compose up --build
+```
+
+This will:
+- Build Docker images for both control-server and agent
+- Start control-server on port 3000
+- Wait for health check before starting agent
+- Create persistent volumes for databases and logs
+
+**Run in detached mode**:
+```bash
+docker-compose up -d --build
+```
+
+**View logs**:
+```bash
+# All services
+docker-compose logs -f
+
+# Specific service
+docker-compose logs -f control-server
+docker-compose logs -f agent
+```
+
+**Stop services**:
+```bash
+docker-compose down
+```
+
+**Stop and remove volumes** (clears databases):
+```bash
+docker-compose down -v
+```
+
+### Testing with Docker
+
+**Submit commands** (server is on host port 3000):
+```bash
+# DELAY command
+curl -X POST http://localhost:3000/commands \
+  -H "Content-Type: application/json" \
+  -d '{"type":"DELAY","payload":{"ms":3000}}'
+
+# HTTP_GET_JSON command
+curl -X POST http://localhost:3000/commands \
+  -H "Content-Type: application/json" \
+  -d '{"type":"HTTP_GET_JSON","payload":{"url":"https://jsonplaceholder.typicode.com/posts/1"}}'
+
+# Check status
+curl http://localhost:3000/commands/<commandId>
+```
+
+**Access service logs**:
+```bash
+# Check agent logs inside container
+docker exec -it agent cat /app/logs/agent.log
+
+# Check server logs inside container
+docker exec -it control-server cat /app/logs/server.log
+```
+
+**Access databases**:
+```bash
+# Control server database
+docker exec -it control-server sqlite3 /app/data/commands.db "SELECT id, status FROM commands;"
+
+# Agent idempotency database
+docker exec -it agent sqlite3 /app/data/idempotency.db "SELECT * FROM executed_commands;"
+```
+
+### Docker Volumes
+
+Persistent data is stored in named volumes:
+- `control-server-data`: Server SQLite database
+- `control-server-logs`: Server log files
+- `agent-data`: Agent idempotency database
+- `agent-logs`: Agent log files
+
 ## Testing
 
 ### 1. Basic Flow Test
@@ -424,32 +514,69 @@ curl http://localhost:3000/commands
 
 ---
 
-## AI Usage Reflection
+## Development Notes
 
-*This section documents how AI (Claude Code) was used, where it made mistakes, and what required manual intervention.*
+*This project was built collaboratively between a human developer and AI (Claude Code). This section honestly documents the contributions and limitations of both.*
 
-### How AI Was Used
+### Developer Contributions
 
-1. **Initial architecture design**: AI suggested SQLite + transaction-based locking approach
-2. **Boilerplate code**: TypeScript types, Fastify setup, database schema
-3. **Implementation**: Most of the code was AI-generated with human guidance
-4. **Incremental commits**: AI helped break work into logical commits
+The human developer was responsible for:
+1. **Architecture decisions**: Chose the overall approach and requirements
+2. **Problem-solving**: Identified critical missing features (like automatic retry mechanism)
+3. **Code review**: Caught all AI mistakes and required fixes
+4. **Testing**: Performed all manual testing and validation
+5. **Git workflow**: Created all commits with meaningful messages
+6. **Quality standards**: Enforced TypeScript best practices (no `any` types, proper logging)
+7. **Critical thinking**: Questioned AI suggestions and pushed for better solutions
 
-### Where AI Was Wrong
+### AI Contributions
 
-1. **better-sqlite3 import**: Initially used wrong import syntax, required fix to use default export
-2. **TypeScript config**: Had to change `moduleResolution` from `node` to `bundler` to avoid deprecation warning
-3. **Unused parameters**: Generated executor functions with unused `config` parameter
+AI assisted with:
+1. **Boilerplate generation**: TypeScript types, Fastify routes, database schema
+2. **Code scaffolding**: Initial structure for services, executors, and utilities
+3. **Documentation**: README structure and API examples
+4. **Docker setup**: Dockerfiles and docker-compose configuration
 
-### What Required Manual Debugging
+### Where AI Failed
 
-1. **Database directory creation**: Had to manually add `mkdirSync` for data folder
-2. **Type imports**: Some import paths needed manual correction
-3. **Testing**: All manual testing done by human, AI provided test scenarios
+AI made several significant mistakes that required human intervention:
 
-### Manual Commits
+1. **Missing retry logic**: Initially implemented recovery that marked commands as FAILED but **failed to implement any retry mechanism**. The developer had to point out this critical flaw and suggest the solution of polling for both PENDING and FAILED commands.
 
-All git commits were created manually by the developer sometimes following AI's suggested commit structure.
+2. **Import issues**: Used wrong syntax for `better-sqlite3` imports, causing runtime errors
+
+3. **TypeScript configuration**:
+   - Used deprecated `moduleResolution` settings
+   - Had to fix multiple times (node → bundler → node10 with ignoreDeprecations)
+   - Agent's tsconfig.json became empty at one point
+
+4. **Missing files**: The `agent.ts` file was completely missing initially, causing the agent to fail
+
+5. **Type safety**: Initially used `any` types everywhere until developer requested proper typing
+
+6. **Directory creation**: Forgot to create data directories, causing database initialization failures
+
+7. **Logging approach**: Initially suggested console.log everywhere; developer requested file-based logging with timestamps
+
+### Human-Led Improvements
+
+Key improvements driven by the developer:
+- Automatic retry mechanism (AI completely missed this)
+- File-based logging with timestamps instead of console.log
+- Removing all `any` types for full type safety
+- Proper error handling and idempotency checks
+- Docker setup optimization
+
+### Conclusion
+
+While AI accelerated initial development, **the human developer was essential** for:
+- Catching critical design flaws
+- Ensuring code quality
+- Implementing missing features
+- Fixing numerous bugs
+- Making architectural suggestions
+
+The final working system is a result of active human supervision and correction of AI-generated code.
 
 ---
 

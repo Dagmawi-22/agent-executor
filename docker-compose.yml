@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  control-server:
+    build:
+      context: ./control-server
+      dockerfile: Dockerfile
+    container_name: control-server
+    ports:
+      - "3000:3000"
+    volumes:
+      - control-server-data:/app/data
+      - control-server-logs:/app/logs
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - agent-network
+
+  agent:
+    build:
+      context: ./agent
+      dockerfile: Dockerfile
+    container_name: agent
+    depends_on:
+      control-server:
+        condition: service_healthy
+    volumes:
+      - agent-data:/app/data
+      - agent-logs:/app/logs
+    environment:
+      - SERVER_URL=http://control-server:3000
+      - POLL_INTERVAL=2000
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - agent-network
+
+volumes:
+  control-server-data:
+    driver: local
+  control-server-logs:
+    driver: local
+  agent-data:
+    driver: local
+  agent-logs:
+    driver: local
+
+networks:
+  agent-network:
+    driver: bridge
