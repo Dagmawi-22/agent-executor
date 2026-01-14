@@ -127,6 +127,96 @@ runRecovery(() => commandsService.recoverRunningCommands());
 - Crash after execution, before reporting: Server marks FAILED, agent picks it up, skips execution (idempotency), reports result
 - Server restart during agent execution: Command marked FAILED on restart, agent may complete and submit successfully or retry
 
+## Multi-Agent Support & Scalability
+
+### Current Multi-Agent Capabilities
+
+The system is designed for a single agent but includes foundational support for multiple agents:
+
+**1. Transaction-Based Command Assignment**
+
+The `getNextPendingCommand()` method uses SQLite transactions to ensure atomic command assignment:
+
+```typescript
+const transaction = db.transaction(() => {
+  // SELECT + UPDATE in single transaction
+  // Only one agent gets each command, even with concurrent requests
+});
+```
+
+This prevents race conditions when multiple agents poll simultaneously.
+
+**2. Agent Identification & Tracking**
+
+Each command tracks:
+- `agentId`: Which agent is executing it
+- `assignedAt`: When it was assigned
+- Status transitions prevent reassignment while RUNNING
+
+**3. Handling the "Additional Questions"**
+
+**Q: What happens when multiple agents exist?**
+
+✅ **Already Handled:** Transaction-based locking ensures only one agent receives each command. The `agentId` field tracks ownership.
+
+⚠️  **Limitation:** No agent health monitoring or stalled command detection (see below).
+
+**Q: Agent restarts quickly?**
+
+✅ **Already Handled:**
+- Server-side status prevents reassigning RUNNING commands
+- Agent-side idempotency DB prevents re-execution
+- If server crashes, commands marked FAILED are automatically retried
+
+**Q: Agent requests next command while one is running?**
+
+✅ **Already Handled:**
+- Agent polls continuously regardless of current work
+- Server only returns PENDING or FAILED commands
+- RUNNING commands stay locked until completed or server restart
+
+### What's Missing for Production Multi-Agent
+
+**1. Command Timeout Detection**
+
+**Problem:** Agent dies silently → command stuck in RUNNING forever
+
+**Solution Needed:**
+```typescript
+// Detect commands stuck in RUNNING for > 5 minutes
+recoverStalledCommands(timeoutMs: number): number {
+  const staleTimestamp = Date.now() - timeoutMs;
+  // Mark as FAILED if assignedAt < staleTimestamp
+}
+```
+
+**2. Agent Heartbeat System**
+
+**Problem:** No way to detect dead agents
+
+**Solution Needed:**
+- Agent registration table tracking last heartbeat
+- Periodic check to mark agents DEAD
+- Reassign their commands to healthy agents
+
+**3. Load Balancing**
+
+**Current:** Any agent can take any command (FIFO)
+
+**Better:** Prefer assigning FAILED commands to same agent for context
+
+### Why These Were Deferred
+
+For a single-agent system, these features add complexity without value:
+- No timeout needed if agent crashes → server restart recovers
+- No heartbeats needed for one agent
+- Load balancing irrelevant with one worker
+
+The current architecture **supports easy extension** to multiple agents by adding:
+1. Periodic stalled command recovery (10 lines)
+2. Agent heartbeat endpoint + table (30 lines)
+3. Smart assignment logic (5 lines)
+
 ## Design Decisions & Trade-offs
 
 ### 1. Recovery Strategy: RUNNING → FAILED + Auto-Retry
@@ -743,24 +833,38 @@ curl http://localhost:3000/commands
 
 ## Known Limitations
 
-1. **Single agent assumption**: Designed for one agent, though server supports multiple (untested)
-2. **No exponential backoff**: Retries happen immediately on agent poll, no delay strategy
-3. **No command timeout**: Long-running commands can block agent indefinitely
+1. **Single agent assumption**: Designed for one agent. Multi-agent support exists (transaction-based locking) but lacks timeout detection and heartbeats. See [Multi-Agent Support](#multi-agent-support--scalability) for details.
+2. **No command timeout**: Commands can run forever if agent dies silently. Requires timeout detection for production multi-agent deployments.
+3. **No exponential backoff**: Retries happen immediately on agent poll, no delay strategy
 4. **No result validation**: Server accepts any result format from agent
 5. **No authentication**: Open API, no security
 6. **No metrics/monitoring**: No Prometheus, logging only
 
 ## Future Enhancements
 
-- [ ] Multiple agent support with load balancing
+### Multi-Agent Improvements
+- [ ] Command timeout detection and stalled command recovery
+- [ ] Agent heartbeat system with health monitoring
+- [ ] Smart load balancing (prefer same agent for retries)
+- [ ] Agent registration and discovery
+
+### Reliability
 - [ ] Exponential backoff for retry delays
-- [ ] Command timeout enforcement
 - [ ] Max retry count to prevent infinite retry loops
+- [ ] Graceful shutdown handling
+- [ ] Circuit breaker for failing agents
+
+### Features
+- [ ] Command priority queue
 - [ ] Result schema validation
+- [ ] Command cancellation support
+- [ ] Batch command submission
+
+### Production Readiness
 - [ ] Authentication & authorization
 - [ ] Metrics (Prometheus) + monitoring
-- [ ] Graceful shutdown handling
-- [ ] Command priority queue
+- [ ] Rate limiting
+- [ ] Audit logging
 
 ---
 
