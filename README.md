@@ -304,14 +304,14 @@ npm run dev -- --random-failures      # Random crashes (10% chance per cycle)
 ### Prerequisites
 ```bash
 docker >= 20.x
-docker-compose >= 2.x
+docker compose >= 2.x
 ```
 
 ### Quick Start
 
 **Start both services**:
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
 
 This will:
@@ -322,7 +322,7 @@ This will:
 
 **Run in detached mode**:
 ```bash
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 **View logs**:
@@ -331,8 +331,8 @@ docker-compose up -d --build
 docker-compose logs -f
 
 # Specific service
-docker-compose logs -f control-server
-docker-compose logs -f agent
+docker compose logs -f control-server
+docker compose logs -f agent
 ```
 
 **Stop services**:
@@ -342,7 +342,7 @@ docker-compose down
 
 **Stop and remove volumes** (clears databases):
 ```bash
-docker-compose down -v
+docker compose down -v
 ```
 
 ### Testing with Docker
