@@ -5,12 +5,9 @@ agent/node_modules/
 control-server/data/
 agent/data/
 
-control-server/package-lock.json
 control-server/.env
 control-server/yarn.lock
 agent/yarn.lock
-agent/yarn.lock
-agent/package-lock.json
 
 # Environment files
 .env
