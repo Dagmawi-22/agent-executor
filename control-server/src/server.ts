@@ -18,7 +18,7 @@ const start = async () => {
     initializeDatabase();
     runRecovery(() => commandsService.recoverRunningCommands());
 
-    await fastify.listen({ port: 3000 });
+    await fastify.listen({ port: 3000, host: '0.0.0.0' });
     logger.info("Control server listening on port 3000");
   } catch (err) {
     logger.error("Failed to start server", { error: err instanceof Error ? err.message : String(err) });
