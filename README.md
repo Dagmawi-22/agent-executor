@@ -614,7 +614,7 @@ While AI accelerated initial development, **the human developer was essential** 
 - Ensuring code quality
 - Implementing missing features
 - Fixing numerous bugs
-- Making architectural suggestions
+- Making architectural decisions
 
 The final working system is a result of active human supervision and correction of AI-generated code.
 
