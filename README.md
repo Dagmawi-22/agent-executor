@@ -299,6 +299,46 @@ Persistent data is stored in named volumes:
 - `agent-data`: Agent idempotency database
 - `agent-logs`: Agent log files
 
+### Environment Configuration
+
+The docker-compose configuration supports environment variables for flexible deployment:
+
+1. **Copy the example environment file**:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Edit `.env` with your values**:
+   ```bash
+   CONTROL_SERVER_PORT=3000
+   SERVER_URL=http://control-server:3000
+   POLL_INTERVAL=2000
+   NODE_ENV=production
+   ```
+
+3. **Run with custom configuration**:
+   ```bash
+   docker-compose up -d
+   ```
+
+## CI/CD Pipeline
+
+This project includes a GitHub Actions CI/CD pipeline that automatically builds, tests, and pushes Docker images to GitHub Container Registry.
+
+### Pipeline Overview
+
+The workflow (`.github/workflows/ci-cd.yml`) runs on:
+
+- **Push to main**: Builds, tests, and pushes Docker images to GitHub Container Registry
+- **Pull requests to main**: Runs build and test only (no image push)
+
+### What Happens Automatically
+
+1. **Build and Test**: Compiles TypeScript and runs tests for both services
+2. **Build and Push**: Creates Docker images and pushes to `ghcr.io/YOUR_USERNAME/agent-executor/control-server:latest` and `ghcr.io/YOUR_USERNAME/agent-executor/agent:latest`
+
+**No manual configuration needed** - GitHub automatically provides `GITHUB_TOKEN` for pushing to the registry.
+
 ## Testing
 
 ### 1. Basic Flow Test

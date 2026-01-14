@@ -12,6 +12,10 @@ agent/yarn.lock
 agent/yarn.lock
 agent/package-lock.json
 
+# Environment files
+.env
+.env.local
+
 # Logs
 logs/
 
