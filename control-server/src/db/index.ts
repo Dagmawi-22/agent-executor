@@ -21,6 +21,13 @@ export function initializeDatabase(): void {
   console.log("Database initialized successfully");
 }
 
+export function runRecovery(recoverFn: () => number): void {
+  const recoveredCount = recoverFn();
+  if (recoveredCount > 0) {
+    console.log(`Recovery: marked ${recoveredCount} RUNNING command(s) as FAILED`);
+  }
+}
+
 export function closeDatabase(): void {
   db.close();
   console.log("Database connection closed");

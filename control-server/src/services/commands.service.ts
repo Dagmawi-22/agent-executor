@@ -119,6 +119,18 @@ export class CommandsService {
     return rows.map((row) => this.mapRowToCommand(row));
   }
 
+  recoverRunningCommands(): number {
+    const now = Date.now();
+    const stmt = db.prepare(`
+      UPDATE commands
+      SET status = 'FAILED', updatedAt = ?
+      WHERE status = 'RUNNING'
+    `);
+
+    const info = stmt.run(now);
+    return info.changes;
+  }
+
   private mapRowToCommand(row: any): Command {
     return {
       id: row.id,
