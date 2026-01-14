@@ -8,6 +8,7 @@
     "email": "dagmawi.teka1@gmail.com",
     "website": "https://dteka.vercel.app"
   },
+  "type": "module",
   "scripts": {
     "dev": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/server.ts",
     "build": "tsc",
