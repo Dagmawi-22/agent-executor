@@ -16,6 +16,7 @@
   "exclude": ["node_modules"],
   "ts-node": {
     "esm": false,
+    "transpileOnly": true,
     "compilerOptions": {
       "module": "commonjs"
     }
