@@ -275,7 +275,7 @@ npm or yarn
 ```bash
 cd control-server
 npm install
-npm run dev
+npm run start:dev
 ```
 
 Server runs on `http://localhost:3000`
@@ -285,7 +285,7 @@ Server runs on `http://localhost:3000`
 ```bash
 cd agent
 npm install
-npm run dev
+npm run start:dev
 ```
 
 **Environment Variables**:
@@ -295,8 +295,8 @@ npm run dev
 
 **Crash Simulation**:
 ```bash
-npm run dev -- --kill-after=10        # Crash after 10 seconds
-npm run dev -- --random-failures      # Random crashes (10% chance per cycle)
+npm run start:dev -- --kill-after=10        # Crash after 10 seconds
+npm run start:dev -- --random-failures      # Random crashes (10% chance per cycle)
 ```
 
 ## Running with Docker
@@ -607,12 +607,12 @@ GitHub → Packages → Your package → Package settings → Change visibility
 
 **Terminal 1 (Server)**:
 ```bash
-cd control-server && npm run dev
+cd control-server && npm run start:dev
 ```
 
 **Terminal 2 (Agent)**:
 ```bash
-cd agent && npm run dev
+cd agent && npm run start:dev
 ```
 
 **Terminal 3 (Create commands)**:
