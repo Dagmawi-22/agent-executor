@@ -328,7 +328,7 @@ docker compose up -d --build
 **View logs**:
 ```bash
 # All services
-docker-compose logs -f
+docker compose logs -f
 
 # Specific service
 docker compose logs -f control-server
@@ -337,7 +337,7 @@ docker compose logs -f agent
 
 **Stop services**:
 ```bash
-docker-compose down
+docker compose down
 ```
 
 **Stop and remove volumes** (clears databases):
@@ -399,7 +399,7 @@ Persistent data is stored in named volumes:
 
 ### Environment Configuration
 
-The docker-compose configuration supports environment variables for flexible deployment:
+The docker compose configuration supports environment variables for flexible deployment:
 
 1. **Copy the example environment file**:
    ```bash
@@ -425,7 +425,7 @@ The docker-compose configuration supports environment variables for flexible dep
 
 3. **Run with custom configuration**:
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
 **Understanding Port Configuration**:
@@ -575,8 +575,8 @@ After the CI/CD pipeline pushes images to GitHub Container Registry, you can pul
 
 3. **Pull and start services**:
    ```bash
-   docker-compose -f docker-compose.prod.yml pull
-   docker-compose -f docker-compose.prod.yml up -d
+   docker compose -f docker-compose.prod.yml pull
+   docker compose -f docker-compose.prod.yml up -d
    ```
 
 4. **Check it's running**:
@@ -591,11 +591,11 @@ After the CI/CD pipeline pushes images to GitHub Container Registry, you can pul
 echo $GITHUB_TOKEN | docker login ghcr.io -u YOUR_USERNAME --password-stdin
 
 # Pull images
-docker pull ghcr.io/YOUR_USERNAME/agent-executor/control-server:latest
-docker pull ghcr.io/YOUR_USERNAME/agent-executor/agent:latest
+docker pull ghcr.io/Dagmawi-22/agent-executor/control-server:latest
+docker pull ghcr.io/Dagmawi-22/agent-executor/agent:latest
 
-# Run with docker-compose.prod.yml
-docker-compose -f docker-compose.prod.yml up -d
+# Run with docker compose.prod.yml
+docker compose -f docker-compose.prod.yml up -d
 ```
 
 **Note**: By default, GitHub Container Registry packages are private. Make them public in:
@@ -889,7 +889,7 @@ AI assisted with:
 1. **Boilerplate generation**: TypeScript types, Fastify routes, database schema
 2. **Code scaffolding**: Initial structure for services, executors, and utilities
 3. **Documentation**: README structure and API examples
-4. **Docker setup**: Dockerfiles and docker-compose configuration
+4. **Docker setup**: Dockerfiles and docker compose configuration
 
 ### Where AI Failed
 
