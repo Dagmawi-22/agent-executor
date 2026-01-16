@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { AgentConfig } from "./types";
-import { pollForCommand, submitResult } from "./services/api";
+import { initializeApi, pollForCommand, submitResult } from "./services/api";
 import { executeCommand } from "./executors";
 import { initializeIdempotency } from "./services/idempotency";
 import { logger } from "./utils/logger.js";
@@ -39,6 +39,7 @@ async function main() {
   };
 
   initializeIdempotency();
+  initializeApi(config.serverUrl);
 
   logger.info(`Agent started: ${config.agentId}`);
   logger.info(`Server: ${config.serverUrl}`);
@@ -62,7 +63,7 @@ async function main() {
         process.exit(1);
       }
 
-      const command = await pollForCommand(config.serverUrl, config.agentId);
+      const command = await pollForCommand(config.agentId);
 
       if (!command) {
         await sleep(config.pollInterval);
@@ -75,12 +76,7 @@ async function main() {
 
       logger.info(`Completed command: ${command.id}`);
 
-      await submitResult(
-        config.serverUrl,
-        command.id,
-        result,
-        config.agentId
-      );
+      await submitResult(command.id, result, config.agentId);
 
       logger.info(`Submitted result for: ${command.id}`);
     } catch (error) {
